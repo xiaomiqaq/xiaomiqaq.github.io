@@ -104,8 +104,8 @@ theme: suka
 deploy:
   type: git
   repo: git@github.com:xiaomiqaq/xiaomiqaq.github.io.git
-  branch: main
-  message: from taishi
+  branch: hexo
+  message: 上传博客
 suka_theme:
   search:
     enable: true
