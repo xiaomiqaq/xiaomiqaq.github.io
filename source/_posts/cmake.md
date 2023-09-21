@@ -77,6 +77,10 @@ cmake_dependent_option(
     )
 ```
 
+
+
+
+
 ## 变量
 
 ### 指定编译器
@@ -93,3 +97,149 @@ $ env CXX=clang++ cmake ..
 > `env` 命令用于显示当前用户环境中定义的环境变量。
 >
 > *CMake了解运行环境，可以通过其CLI的`-D`开关或环境变量设置许多选项。前一种机制覆盖后一种机制*
+
+
+
+
+
+### 设置编译选项
+
+CMake将编译选项视为目标属性。
+
+
+
+为目标设置编译选项：
+
+方法1：
+
+``` cmake
+
+target_compile_options(geometry
+  PRIVATE
+    ${flags}
+  )
+```
+
+#### 可见性
+
+- **PRIVATE**，编译选项会应用于给定的目标，不会传递给与目标相关的目标。我们的示例中， 即使`compute-areas`将链接到`geometry`库，`compute-areas`也不会继承`geometry`目标上设置的编译器选项。
+- **INTERFACE**，给定的编译选项将只应用于指定目标，并传递给与目标相关的目标。
+- **PUBLIC**，编译选项将应用于指定目标和使用它的目标。
+
+方法2：
+
+不用对`CMakeLists.txt`进行修改。使用`-D`CLI标志直接修改`CMAKE_<LANG>_FLAGS_<CONFIG>`变量,这将影响项目中的所有目标，并覆盖或扩展CMake默认值。
+
+```shell
+$ cmake -D CMAKE_CXX_FLAGS="-fno-exceptions -fno-rtti" ..
+```
+
+#### 根据不同编译器设置不同选项
+
+``` cmake
+set(COMPILER_FLAGS)
+set(COMPILER_FLAGS_DEBUG)
+set(COMPILER_FLAGS_RELEASE)
+if(CMAKE_CXX_COMPILER_ID MATCHES GNU)
+  list(APPEND CXX_FLAGS "-fno-rtti" "-fno-exceptions")
+  list(APPEND CXX_FLAGS_DEBUG "-Wsuggest-final-types" "-Wsuggest-final-methods" "-Wsuggest-override")
+  list(APPEND CXX_FLAGS_RELEASE "-O3" "-Wno-unused")
+endif()
+if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
+  list(APPEND CXX_FLAGS "-fno-rtti" "-fno-exceptions" "-Qunused-arguments" "-fcolor-diagnostics")
+  list(APPEND CXX_FLAGS_DEBUG "-Wdocumentation")
+  list(APPEND CXX_FLAGS_RELEASE "-O3" "-Wno-unused")
+endif()
+
+target_compile_option(compute-areas
+  PRIVATE
+    ${CXX_FLAGS}
+    "$<$<CONFIG:Debug>:${CXX_FLAGS_DEBUG}>"
+    "$<$<CONFIG:Release>:${CXX_FLAGS_RELEASE}>"
+  )
+```
+
+### 设置语言标准
+
+```cma	
+set_target_properties(animals
+  PROPERTIES
+    CXX_STANDARD 14
+    CXX_EXTENSIONS OFF
+    CXX_STANDARD_REQUIRED ON
+    POSITION_INDEPENDENT_CODE 1
+  )
+```
+
+### 检测操作系统
+
+CMAKE_SYSTEM_NAME 
+
+>  *CMake代码中只使用前斜杠作为路径分隔符，CMake将自动将它们转换为所涉及的操作系统环境。*
+
+#### 为不同系统设置宏
+
+```cmake
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  target_compile_definitions(hello-world PUBLIC "IS_LINUX")
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+  target_compile_definitions(hello-world PUBLIC "IS_MACOS")
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+  target_compile_definitions(hello-world PUBLIC "IS_WINDOWS")
+endif()
+```
+
+```cpp
+#ifdef IS_WINDOWS
+  return std::string("Hello from Windows!");
+#elif IS_LINUX
+  return std::string("Hello from Linux!");
+#elif IS_MACOS
+  return std::string("Hello from macOS!");
+#else
+  return std::string("Hello from an unknown system!");
+```
+
+使用`target_compile_definition`来决定预处理阶段的行为。
+
+## 属性
+
+全局
+
+项目
+
+目标
+
+源文件：源文件的可用属性列表https://cmake.org/cmake/help/v3.5/manual/cmake-properties.7.html#source-file-properties 
+
+这四个都可以设置属性
+
+## 语法
+
+### 控制流
+
+#### foreach
+
+```cmake
+list(
+  APPEND sources_with_lower_optimization
+    geometry_circle.cpp
+    geometry_rhombus.cpp
+  )
+message(STATUS "Querying sources properties using plain syntax:")
+foreach(_source ${sources_with_lower_optimization})
+  get_source_file_property(_flags ${_source} COMPILE_FLAGS)
+  message(STATUS "Source ${_source} has the following extra COMPILE_FLAGS: ${_flags}")
+endforeach()
+```
+
+`foreach(loop_var range total)`
+
+`foreach(loop_var IN LISTS [list1[...]])`
+
+### 列表
+
+列表是用分号分隔的字符串组。列表可以由`list`或`set`命令创建。例如，`set(var a b c d e)`和`list(APPEND a b c d e)`都创建了列表`a;b;c;d;e`
+
