@@ -4,6 +4,8 @@ date: 2023-09-20 20:22:53
 tags:
 ---
 
+# cmake
+
 安装Ninja的一系列命令
 
 ```shell
@@ -37,7 +39,14 @@ CMake是一个构建系统生成器 ，将描述构建系统(如：Unix Makefile
 $ cmake --system-information information.txt
 ```
 
+## 构建
 
+
+
+1. **Debug**：用于在没有优化的情况下，使用带有调试符号构建库或可执行文件。
+2. **Release**：用于构建的优化的库或可执行文件，不包含调试符号。
+3. **RelWithDebInfo**：用于构建较少的优化库或可执行文件，包含调试符号。
+4. **MinSizeRel**：用于不增加目标代码大小的优化方式，来构建库或可执行文件。
 
 ## add_library
 
@@ -83,6 +92,11 @@ cmake_dependent_option(
 
 ## 变量
 
+### 优先级
+
+1. -D
+2. 
+
 ### 指定编译器
 
 CMAKE_<LANG>COMPILER 
@@ -97,6 +111,27 @@ $ env CXX=clang++ cmake ..
 > `env` 命令用于显示当前用户环境中定义的环境变量。
 >
 > *CMake了解运行环境，可以通过其CLI的`-D`开关或环境变量设置许多选项。前一种机制覆盖后一种机制*
+
+### 指定构建类型
+
+配置变量是`CMAKE_BUILD_TYPE`。该变量默认为空，CMake识别的值为:
+
+1. **Debug**：用于在没有优化的情况下，使用带有调试符号构建库或可执行文件。
+2. **Release**：用于构建的优化的库或可执行文件，不包含调试符号。
+3. **RelWithDebInfo**：用于构建较少的优化库或可执行文件，包含调试符号。
+4. **MinSizeRel**：用于不增加目标代码大小的优化方式，来构建库或可执行文件。
+
+使用`CMAKE_CONFIGURATION_TYPES`变量可以对这些生成器的可用配置类型进行调整，该变量将接受一个值列表。例如，在配置时，为Release和Debug配置生成一个构建树。
+
+``` shell
+ cmake .. -G"Visual Studio 12 2017 Win64" -D CMAKE_CONFIGURATION_TYPES="Release;Debug"
+```
+
+构建时指定
+
+```shell
+$ cmake --build . --config Release
+```
 
 
 

@@ -8,7 +8,7 @@ subtitle: ''
 description: ''
 keywords:
 author: John Doe
-language: en
+language: zh-CN
 timezone: ''
 
 # URL
@@ -97,7 +97,7 @@ ignore:
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
-theme: Hacker
+theme: butterfly
 
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
@@ -106,12 +106,3 @@ deploy:
   repo: git@github.com:xiaomiqaq/xiaomiqaq.github.io.git
   branch: hexo
   message: 上传博客
-suka_theme:
-  search:
-    enable: true
-    path: search.json
-    field: post # Page | Post | All. Default post
-  prism:
-    enable: false
-    line_number: true
-    theme: default
