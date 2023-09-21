@@ -206,6 +206,10 @@ set_target_properties(animals
   )
 ```
 
+## 检测环境
+
+
+
 ### 检测操作系统
 
 CMAKE_SYSTEM_NAME 
@@ -238,6 +242,10 @@ endif()
 ```
 
 使用`target_compile_definition`来决定预处理阶段的行为。
+
+### 检测处理器架构
+
+CMake的`CMAKE_SIZEOF_VOID_P`变量会告诉我们CPU是32位还是64位
 
 ## 属性
 
