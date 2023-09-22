@@ -169,6 +169,22 @@ target_compile_options(geometry
 $ cmake -D CMAKE_CXX_FLAGS="-fno-exceptions -fno-rtti" ..
 ```
 
+#### 检查编译器标志
+
+使用`CheckCXXCompilerFlag.cmake`模块提供的`check_cxx_compiler_flag`函数进行编译器标志的检查:
+
+```
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-march=native" _march_native_works)
+```
+
+这个函数接受两个参数:
+
+- 第一个是要检查的编译器标志。
+- 第二个是用来存储检查结果(true或false)的变量。如果检查为真，将工作标志添加到`_CXX_FLAGS`变量中，该变量将用于为可执行目标设置编译器标志。
+
+
+
 #### 根据不同编译器设置不同选项
 
 ``` cmake
@@ -243,9 +259,92 @@ endif()
 
 使用`target_compile_definition`来决定预处理阶段的行为。
 
-### 检测处理器架构
+### 检测CPU架构
 
 CMake的`CMAKE_SIZEOF_VOID_P`变量会告诉我们CPU是32位还是64位
+
+检查空指针类型的大小。CMake的`CMAKE_SIZEOF_VOID_P`变量会告诉我们CPU是32位还是64位。
+
+```cmake
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  target_compile_definitions(arch-dependent PUBLIC "IS_64_BIT_ARCH")// 会在CPP中添加宏定义IS_64_BIT_ARCH
+  message(STATUS "Target is 64 bits") 
+else()
+  target_compile_definitions(arch-dependent PUBLIC "IS_32_BIT_ARCH")
+  message(STATUS "Target is 32 bits")
+endif()
+
+```
+
+
+
+`CMAKE_HOST_SYSTEM_PROCESSOR `可以检测CPU架构
+
+```cmake
+if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i386")
+    message(STATUS "i386 architecture detected")
+endif()
+target_compile_definitions(arch-dependent
+  PUBLIC "ARCHITECTURE=${CMAKE_HOST_SYSTEM_PROCESSOR}"
+  )
+```
+
+还有一个`CMAKE_SYSTEM_PROCESSOR`表示当前正在为其构建的CPU的名称。在交叉编译时很有用
+
+### 检测指令集架构
+
+```cpp
+#include "config.h"
+#include <cstdlib>
+#include <iostream>
+int main()
+{
+  std::cout << "Number of logical cores: "
+            << NUMBER_OF_LOGICAL_CORES << std::endl;
+  std::cout << "Number of physical cores: "
+            << NUMBER_OF_PHYSICAL_CORES << std::endl;
+  return 0;
+}
+```
+
+这个config.h不是直接编辑，而是通过使用`config.h.in`生成。
+
+config.h.in
+
+```cpp
+#pragma once
+#define NUMBER_OF_LOGICAL_CORES @_NUMBER_OF_LOGICAL_CORES@
+#define NUMBER_OF_PHYSICAL_CORES @_NUMBER_OF_PHYSICAL_CORES@
+```
+
+然后通过cmake填充`config.h`中的定义
+
+``` cmake
+foreach(key
+  IN ITEMS
+    NUMBER_OF_LOGICAL_CORES
+    NUMBER_OF_PHYSICAL_CORES
+    )
+     cmake_host_system_information(RESULT _${key} QUERY ${key})
+endforeach()
+configure_file(config.h.in config.h @ONLY)
+```
+
+核心函数是`cmake_host_system_information`，它查询运行CMake的主机系统的系统信息。
+
+使用这些变量来配置`config.h.in`中的占位符，输入并生成`config.h`
+
+## 检测外部库
+
+CMake有一组预打包模块，用于检测常用库和程序，`cmake --help-module-list`获得现有模块的列表
+
+### find族命令
+
+- **find_file**：在相应路径下查找命名文件
+- **find_library**：查找一个库文件
+- **find_package**：从外部项目查找和加载设置
+- **find_path**：查找包含指定文件的目录
+- **find_program**：找到一个可执行程序
 
 ## 属性
 
