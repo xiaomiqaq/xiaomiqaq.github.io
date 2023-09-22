@@ -48,13 +48,23 @@ $ cmake --system-information information.txt
 3. **RelWithDebInfo**：用于构建较少的优化库或可执行文件，包含调试符号。
 4. **MinSizeRel**：用于不增加目标代码大小的优化方式，来构建库或可执行文件。
 
-## add_library
+## 命令
+
+大多数 CMake 命令在配置的时候执行。
+
+
+
+### 生成器表达式
+
+最简单的生成器表达式是信息表达式，其形式为 `$<KEYWORD>`；它会评估和当前配置相关的一系列信息。信息表达式的另一个形式是 `$<KEYWORD:value>`，其中 `KEYWORD` 是一个控制评估的关键字，而 `value` 则是被评估的对象（ 这里的 `value` 中也允许使用信息表达式，如下面的 `${CMAKE_CURRENT_SOURCE_DIR}/include` ）。如果 `KEYWORD` 是一个可以被评估为0或1的生成器表达式或者变量，如果（`KEYWORD`被评估）为1则 `value` 会在这里被保留下来，而反之则不会。
+
+### add_library
 
 生成的库的实际名称将由CMake通过在前面添加前缀`lib`和适当的扩展名作为后缀来形成。
 
 
 
-## option 
+### option 
 
 自定义变量并且在配置时指定
 
@@ -69,6 +79,65 @@ cmake -D USE_LIBRARY=ON ..
 ```
 
 `-D`开关用于为CMake设置任何类型的变量：逻辑变量、路径等等。
+
+
+
+
+
+## 选项
+
+使用 `-D` 设置选项。你能使用 `-L` 列出所有选项，或者用 `-LH` 列出人类更易读的选项列表。
+
+## 变量,缓存,属性
+
+CMake 支持缓存选项。CMake 中的变量可以被标记为 "cached"，这意味着它会被写入缓存（构建目录中名为 `CMakeCache.txt` 的文件）。
+
+### 变量	
+
+```CMake
+set(MY_VARIABLE "value")
+```
+
+在 CMake 中如果一个值没有空格，那么加和不加引号的效果是一样的。这使你可以在处理知道不可能含有空格的值时不加引号。
+
+当一个变量用 `${}` 括起来的时候，空格的解析规则和上述相同。对于路径来说要特别小心，路径很有可能会包含空格，因此你应该总是将解析变量得到的值用引号括起来，也就是，应该这样 `"${MY_PATH}"` 。
+
+#### cmake设置环境变量
+
+通过 `set(ENV{variable_name} value)` 和 `$ENV{variable_name}` 来设置和获取环境变量
+
+### 缓存
+
+缓存实际上就是个文本文件，`CMakeCache.txt` ，当你运行 CMake 构建目录时会创建它。 CMake 可以通过它来记住你设置的所有东西，因此你可以不必在重新运行 CMake 的时候再次列出所有的选项。
+
+### 属性
+
+属性本质还是一个变量，
+
+- 属性是与CMake的目标（如可执行文件、库、自定义目标等）相关联的元数据。这些属性可以控制目标的构建过程和行为。
+- 属性是目标特定的，可以设置不同的属性值来控制不同目标的行为。
+
+像通常我们设置的CMAKE_开头的变量，往往是一个全局属性
+
+```cmake
+set_property(TARGET TargetName
+             PROPERTY CXX_STANDARD 11)
+
+set_target_properties(TargetName PROPERTIES
+                      CXX_STANDARD 11)
+```
+
+第一种方式更加通用 ( general ) ，它可以一次性设置多个目标、文件、或测试，并且有一些非常有用的选项。第二种方式是为一个目标设置多个属性的快捷方式。此外，你可以通过类似于下面的方式来获得属性：
+
+```cmake
+get_property(ResultVariable TARGET TargetName PROPERTY CXX_STANDARD)
+```
+
+目标可以分为下列：全局、项目、目标、源文件。
+
+源文件的可用属性列表https://cmake.org/cmake/help/v3.5/manual/cmake-properties.7.html#source-file-properties 
+
+这四个都可以设置属性
 
 
 
@@ -88,14 +157,23 @@ cmake_dependent_option(
 
 
 
+# cmake 行为准则
 
+- **不要使用具有全局作用域的函数**：这包含 `link_directories`、 `include_libraries` 等相似的函数。
+- **不要添加非必要的 PUBLIC 要求**：你应该避免把一些不必要的东西强加给用户（-Wall）。相比于 **PUBLIC**，更应该把他们声明为 **PRIVATE**。
+- **不要在file函数中添加 GLOB 文件**：如果不重新运行 CMake，Make 或者其他的工具将不会知道你是否添加了某个文件。值得注意的是，CMake 3.12 添加了一个 `CONFIGURE_DEPENDS` 标志能够使你更好的完成这件事。
+- **将库直接链接到需要构建的目标上**：如果可以的话，总是显式的将库链接到目标上。
+- **当链接库文件时，不要省略 PUBLIC 或 PRIVATE 关键字**：这将会导致后续所有的链接都是缺省的。
+- **把 CMake 程序视作代码**：它是代码。它应该和其他的代码一样，是整洁并且可读的。
+- **建立目标的观念**：你的目标应该代表一系列的概念。为任何需要保持一致的东西指定一个 （导入型）INTERFACE 目标，然后每次都链接到该目标。
+- **导出你的接口**：你的 CMake 项目应该可以直接构建或者安装。
+- **为库书写一个 Config.cmake 文件**：这是库作者为支持客户的体验而应该做的。
+- **声明一个 ALIAS 目标以保持使用的一致性**：使用 `add_subdirectory` 和 `find_package` 应该提供相同的目标和命名空间。
+- **将常见的功能合并到有详细文档的函数或宏中**：函数往往是更好的选择。
+- **使用小写的函数名**： CMake 的函数和宏的名字可以定义为大写或小写，但是一般都使用小写，变量名用大写。
+- **使用 `cmake_policy` 和/或 限定版本号范围**： 每次改变版本特性 (policy) 都要有据可依。应该只有不得不使用旧特性时才降低特性 (policy) 版本。
 
-## 变量
-
-### 优先级
-
-1. -D
-2. 
+# 特定场景
 
 ### 指定编译器
 
@@ -222,7 +300,7 @@ set_target_properties(animals
   )
 ```
 
-## 检测环境
+# 检测环境
 
 
 
@@ -334,11 +412,11 @@ configure_file(config.h.in config.h @ONLY)
 
 使用这些变量来配置`config.h.in`中的占位符，输入并生成`config.h`
 
-## 检测外部库
+# 检测外部库
 
 CMake有一组预打包模块，用于检测常用库和程序，`cmake --help-module-list`获得现有模块的列表
 
-### find族命令
+## find族命令
 
 - **find_file**：在相应路径下查找命名文件
 - **find_library**：查找一个库文件
@@ -346,17 +424,73 @@ CMake有一组预打包模块，用于检测常用库和程序，`cmake --help-m
 - **find_path**：查找包含指定文件的目录
 - **find_program**：找到一个可执行程序
 
-## 属性
+### find_package
 
-全局
+CMake模块文件称为`Find<name>.cmake`，当调用`find_package(<name>)`时，模块中的命令将会运行。`find_package`是用于发现和设置包的CMake模块的命令。
 
-项目
+查找模块还会设置了一些有用的变量，反映实际找到了什么，也可以在自己的`CMakeLists.txt`中使用这些变量。例如对于Python解释器，PYTHONINTERP
 
-目标
+- **PYTHONINTERP_FOUND**：是否找到解释器
+- **PYTHON_EXECUTABLE**：Python解释器到可执行文件的路径
+- **PYTHON_VERSION_STRING**：Python解释器的完整版本信息
+- **PYTHON_VERSION_MAJOR**：Python解释器的主要版本号
+- **PYTHON_VERSION_MINOR** ：Python解释器的次要版本号
+- **PYTHON_VERSION_PATCH**：Python解释器的补丁版本号
 
-源文件：源文件的可用属性列表https://cmake.org/cmake/help/v3.5/manual/cmake-properties.7.html#source-file-properties 
+## 检测Python库
 
-这四个都可以设置属性
+### 将Python解释器嵌入到C或C++程序中
+
+需要下列条件：
+
+- Python解释器的工作版本
+- Python头文件Python.h的可用性
+- Python运行时库libpython
+
+```cmake
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
+project(recipe-02 LANGUAGES C)
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+//找到Python解释器
+find_package(PythonInterp REQUIRED) 
+//找到Python头文件和库的模块，EXACT关键字，限制CMake检测特定的版本
+find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT REQUIRED)
+//目标包含python的include目录
+target_include_directories(hello-embedded-python
+  PRIVATE
+      ${PYTHON_INCLUDE_DIRS}
+    )
+```
+
+### 检测Python模块和包
+
+检测Numpy模块
+
+``` cmake
+
+```
+
+#### 每次更改时复制文件
+
+``` cmake
+add_custom_command(
+  OUTPUT
+      ${CMAKE_CURRENT_BINARY_DIR}/use_numpy.py
+  COMMAND
+      ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/use_numpy.py
+      ${CMAKE_CURRENT_BINARY_DIR}/use_numpy.py
+  DEPENDS
+      ${CMAKE_CURRENT_SOURCE_DIR}/use_numpy.py
+  )
+```
+
+
+
+
+
+
 
 ## 语法
 
@@ -384,4 +518,6 @@ endforeach()
 ### 列表
 
 列表是用分号分隔的字符串组。列表可以由`list`或`set`命令创建。例如，`set(var a b c d e)`和`list(APPEND a b c d e)`都创建了列表`a;b;c;d;e`
+
+
 
