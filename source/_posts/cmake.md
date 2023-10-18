@@ -1,7 +1,7 @@
 ---
 title: cmake
 date: 2023-09-20 20:22:53
-tags:
+tags: "cmake"
 ---
 
 # cmake
@@ -31,6 +31,12 @@ CMake是一个构建系统生成器 ，将描述构建系统(如：Unix Makefile
 
 配置时，CMake会进行一系列平台测试，以确定哪些编译器可用。。一个合适的编译器不仅取决于我们所使用的平台，还取决于我们想要使用的生成器。
 
+## 生成
+
+```cmake
+$~/proj/build/: cmake ..
+```
+
 
 
 ### 查找可用的编译器
@@ -40,6 +46,10 @@ $ cmake --system-information information.txt
 ```
 
 ## 构建
+
+```cm
+cmake $~/proj/build/: cmake --build .
+```
 
 
 
